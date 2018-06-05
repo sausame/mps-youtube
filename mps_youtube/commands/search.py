@@ -312,6 +312,9 @@ def search(term):
     query = generate_search_qs(term, videoDuration=video_duration, after=after,
                                category=args.category, is_live=args.live)
 
+    if query.get('videoCategoryId'):
+        del query['videoCategoryId'] # Incompatable with type=search
+
     msg = "Search results for %s%s%s" % (c.y, term, c.w)
     failmsg = "Found nothing for %s%s%s" % (c.y, term, c.w)
     _search(term, query, msg, failmsg)
