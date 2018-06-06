@@ -2,7 +2,8 @@ import os
 import re
 import sys
 import copy
-import pickle
+import json
+import jsonpickle
 from urllib.request import urlopen
 from urllib.error import HTTPError
 from urllib.parse import urlencode
@@ -351,8 +352,8 @@ class _Config:
         """ Save current config to file. """
         config = {setting: self[setting].value for setting in self}
 
-        with open(g.CFFILE, "wb") as cf:
-            pickle.dump(config, cf, protocol=2)
+        with open(g.CFFILE, "w") as cf:
+            cf.write(jsonpickle.encode(config))
 
         util.dbg(c.p + "Saved config: " + g.CFFILE + c.w)
 
@@ -360,16 +361,21 @@ class _Config:
         """ Override config if config file exists. """
         if os.path.exists(g.CFFILE):
 
-            with open(g.CFFILE, "rb") as cf:
-                saved_config = pickle.load(cf)
-
-            for k, v in saved_config.items():
-
+            with open(g.CFFILE, "r") as cf:
                 try:
-                    self[k].value = v
+                    saved_config = jsonpickle.decode(cf.read())
+                except json.decoder.JSONDecodeError:
+                    saved_config = None
 
-                except KeyError:  # Ignore unrecognised data in config
-                    util.dbg("Unrecognised config item: %s", k)
+            if saved_config is not None and isinstance(saved_config, dict):
+
+                for k, v in saved_config.items():
+
+                    try:
+                        self[k].value = v
+
+                    except KeyError:  # Ignore unrecognised data in config
+                        util.dbg("Unrecognised config item: %s", k)
 
             # Update config files from versions <= 0.01.41
             if isinstance(self.PLAYERARGS.get, list):
